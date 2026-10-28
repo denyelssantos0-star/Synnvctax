@@ -7,9 +7,24 @@ from dotenv import load_dotenv
 import random
 import time
 import sqlite3
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from io import BytesIO
 import aiohttp
+from collections import defaultdict, deque
+import asyncio
+import textwrap
+
+# ===== MELHORES MOMENTOS =====
+CANAL_MOMENTOS_ID = 1564636074310111302
+
+historico_momentos = {}
+ultimo_momento_por_canal = {}
+
+PALAVRAS_ENGRACADAS = (
+    "kkkkkkkk", "fdp", "vsfd", "macaco",
+    "tu e ruim", "brota", "lixo", "vagabundo", "otario",
+    "entrosa", "baba ovo"  
+)
 
 # ===== SISTEMA DE XP =====
 
@@ -73,6 +88,15 @@ async def on_ready():
         comandos_globais = await bot.tree.fetch_commands()
         comandos_servidor = await bot.tree.fetch_commands(guild=guild)
 
+        for comando in comandos_globais:
+            if comando.name == "cargos":
+                bot.tree.remove_command(
+                    "cargos",
+                    type=comando.type
+                )
+
+        await bot.tree.sync()
+
         print("=== RANK GLOBAL ===")
         for c in comandos_globais:
             if c.name == "rank":
@@ -85,7 +109,15 @@ async def on_ready():
 
         synced = await bot.tree.sync(guild=guild)
         globais = await bot.tree.fetch_commands()
+        print("=== CARGOS GLOBAL ===")
+        for comando in globais:
+            if comando.name == "cargos":
+                print("GLOBAL:", comando.id, comando.name)
 
+        print("=== CARGOS SERVIDOR ===")
+        for comando in synced:
+            if comando.name == "cargos":
+                print("SERVIDOR:", comando.id, comando.name)
         print("=== COMANDOS GLOBAIS REGISTRADOS NO DISCORD ===")
         for comando in globais:
             print(comando.name, repr(comando.description), comando.id)
@@ -139,7 +171,7 @@ async def avatar(
 
     embed = discord.Embed(
         title=f"🖼️ Avatar de {usuario.display_name}",
-        color=discord.Color.purple()
+        color=discord.Color.from_rgb(0, 0, 0)
     )
 
     embed.set_image(url=usuario.display_avatar.url)
@@ -154,7 +186,7 @@ async def serverinfo(interaction: discord.Interaction):
 
     embed = discord.Embed(
         title=f"📊 {guild.name}",
-        color=discord.Color.purple()
+        color=discord.Color.from_rgb(0, 0, 0)
     )
 
     embed.add_field(
@@ -322,6 +354,7 @@ from datetime import timedelta
 
 # /clear
 @bot.tree.command(name="clear", description="Apaga mensagens do canal.")
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(quantidade="Quantidade de mensagens para apagar")
 @app_commands.checks.has_permissions(manage_messages=True)
 async def clear(interaction: discord.Interaction, quantidade: int):
@@ -370,6 +403,7 @@ async def clear(interaction: discord.Interaction, quantidade: int):
 
 # /kick
 @bot.tree.command(name="kick", description="Expulsa um membro do servidor.")
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     membro="Membro que será expulso",
     motivo="Motivo da expulsão"
@@ -429,7 +463,9 @@ async def kick(
 
 
 # /ban
+
 @bot.tree.command(name="ban", description="Bane um membro do servidor.")
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     membro="Membro que será banido",
     motivo="Motivo do banimento"
@@ -440,6 +476,7 @@ async def ban(
     membro: discord.Member,
     motivo: str = "Nenhum motivo informado"
 ):
+
     if membro == interaction.user:
         await interaction.response.send_message(
             "❌ Você não pode banir você mesmo.",
@@ -489,7 +526,11 @@ async def ban(
 
 
 # /timeout
-@bot.tree.command(name="timeout", description="Coloca um membro de castigo.")
+@bot.tree.command(
+    name="timeout",
+    description="Coloca um membro de castigo."
+)
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     membro="Membro que receberá timeout",
     minutos="Duração em minutos",
@@ -577,6 +618,7 @@ async def timeout(
             )
 # /lock
 @bot.tree.command(name="lock", description="Tranca o canal atual.")
+@app_commands.default_permissions(administrator=True)
 @app_commands.checks.has_permissions(manage_channels=True)
 async def lock(interaction: discord.Interaction):
 
@@ -600,6 +642,7 @@ async def lock(interaction: discord.Interaction):
 
 # /unlock
 @bot.tree.command(name="unlock", description="Destranca o canal atual.")
+@app_commands.default_permissions(administrator=True)
 @app_commands.checks.has_permissions(manage_channels=True)
 async def unlock(interaction: discord.Interaction):
 
@@ -647,7 +690,7 @@ async def erro_comando(
 # O bot procura o canal "logs" automaticamente.
 # Se ele não existir, tenta criar o canal.
 CANAL_LOGS = None
-NOME_CANAL_LOGS = "logs"
+NOME_CANAL_LOGS = "logs-de-moderação"
 
 
 async def preparar_canal_logs():
@@ -705,7 +748,7 @@ async def on_message_delete(message):
 
     embed = discord.Embed(
         title="🗑️ Mensagem apagada",
-        color=discord.Color.red(),
+        color=discord.Color.from_rgb(0, 0, 0),
         timestamp=discord.utils.utcnow()
     )
 
@@ -765,7 +808,7 @@ async def on_message_edit(before, after):
 
     embed = discord.Embed(
         title="✏️ Mensagem editada",
-        color=discord.Color.orange(),
+        color=discord.Color.from_rgb(0, 0, 0),
         timestamp=discord.utils.utcnow()
     )
 
@@ -812,7 +855,7 @@ async def enviar_log_moderacao(
     motivo=None,
     detalhes=None
 ):
-    canal = bot.get_channel(CANAL_LOGS)
+    canal = pegar_canal_logs()
 
     if canal is None:
         print("❌ Canal de logs não encontrado.")
@@ -820,7 +863,7 @@ async def enviar_log_moderacao(
 
     embed = discord.Embed(
         title=titulo,
-        color=discord.Color.purple(),
+        color=discord.Color.from_rgb(0, 0, 0),
         timestamp=discord.utils.utcnow()
     )
 
@@ -859,10 +902,8 @@ async def enviar_log_moderacao(
 # 📢 SISTEMA DE EMBED - OS ORIGINAIS
 # ==========================================
 
-@bot.tree.command(
-    name="embed",
-    description="Envia uma mensagem personalizada em embed."
-)
+@bot.tree.command(name="embed", description="Envia uma mensagem personalizada em embed.")
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     titulo="Título do embed",
     mensagem="Texto principal",
@@ -879,7 +920,7 @@ async def criar_embed(
     mensagem: str,
     canal: discord.TextChannel,
     imagem: str = None,
-    rodape: str = "Os Originais",
+    rodape: str = "Synnvctax Community",
     miniatura: str = None,
     cor: str = "roxo"):
     cores = {
@@ -985,11 +1026,15 @@ async def userinfo(
     else:
         texto_cargos = "Nenhum cargo."
 
+
+
     embed = discord.Embed(
         title=f"👤 Informações de {usuario.display_name}",
-        color=discord.Color.purple(),
+        color=discord.Color.from_rgb(0, 0, 0),
         timestamp=discord.utils.utcnow()
     )
+
+
 
     embed.set_thumbnail(
         url=usuario.display_avatar.url
@@ -1039,7 +1084,7 @@ async def userinfo(
     )
 
     embed.set_footer(
-        text="Os Originais • User Info"
+        text="Synnvctax • User Info"
     )
 
     await interaction.response.send_message(
@@ -1051,10 +1096,8 @@ async def userinfo(
 # 💬 SAY
 # ==========================================
 
-@bot.tree.command(
-    name="say",
-    description="Faz o bot enviar uma mensagem."
-)
+@bot.tree.command(name="say", description="Faz o bot enviar uma mensagem.")
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     mensagem="Mensagem que será enviada",
     canal="Canal onde a mensagem será enviada"
@@ -1128,11 +1171,301 @@ async def entregar_cargo_por_nivel(membro, nivel):
                 )
 
 
+MENSAGENS_LEVEL_UP = [
+    "🎮 GG, {membro}! Você desbloqueou o nível **{nivel}**!",
+    "⚔️ Depois de tantas batalhas, {membro} alcançou o nível **{nivel}**!",
+    "🗺️ Uma nova aventura começa para {membro}, agora no nível **{nivel}**!",
+    "🔥 O poder está aumentando! {membro} chegou ao nível **{nivel}**!",
+    "🏆 Conquista desbloqueada: {membro} alcançou o nível **{nivel}**!",
+    "👑 A lenda está crescendo! {membro} agora é nível **{nivel}**!",
+    "🚀 Rumo ao topo! {membro} subiu para o nível **{nivel}**!",
+    "💎 XP acumulado com sucesso! {membro} chegou ao nível **{nivel}**!",
+    "🛡️ Guerreiro promovido! {membro} alcançou o nível **{nivel}**!",
+    "🎯 Missão concluída! {membro} atingiu o nível **{nivel}**!",
+    "🐉 Um novo poder despertou em {membro}: nível **{nivel}**!",
+    "🧙 Magia de evolução ativada! {membro} agora é nível **{nivel}**!",
+    "💥 BOOM! {membro} acaba de subir para o nível **{nivel}**!",
+    "⚡ Energia máxima! {membro} desbloqueou o nível **{nivel}**!",
+    "🏹 Mais uma vitória na jornada de {membro}: nível **{nivel}**!",
+    "🧟 Sobreviveu a mais uma fase! {membro} chegou ao nível **{nivel}**!",
+    "🌌 Explorador das galáxias! {membro} alcançou o nível **{nivel}**!",
+    "🏰 O reino comemora! {membro} subiu para o nível **{nivel}**!",
+    "🪙 Mais experiência, mais glória! {membro} agora é nível **{nivel}**!",
+    "🎲 A sorte sorriu para {membro}, que alcançou o nível **{nivel}**!",
+    "😂 Mandou tanta mensagem que até o sistema evoluiu: nível **{nivel}** para {membro}!",
+    "🗣️ O chat não para e {membro} também não! Nível **{nivel}**!",
+    "☕ Café tomado, XP garantido! {membro} chegou ao nível **{nivel}**!",
+    "🐸 O lendário sapo do XP abençoou {membro}: nível **{nivel}**!",
+    "📈 O gráfico só sobe! {membro} alcançou o nível **{nivel}**!",
+    "🤯 Alguém segura essa pessoa! {membro} chegou ao nível **{nivel}**!",
+    "💀 O chefão do chat está evoluindo: {membro}, nível **{nivel}**!",
+    "🕹️ Novo recorde pessoal! {membro} alcançou o nível **{nivel}**!",
+    "🎧 Na trilha sonora da vitória, {membro} sobe para o nível **{nivel}**!",
+    "🍀 Sorte ou habilidade? Tanto faz: {membro} chegou ao nível **{nivel}**!",
+    "🌟 A comunidade ganhou mais uma estrela! {membro}, nível **{nivel}**!",
+    "🤝 A força da comunidade ajuda {membro} a chegar ao nível **{nivel}**!",
+    "🎉 Soltem os fogos! {membro} desbloqueou o nível **{nivel}**!",
+    "💜 O brilho está diferente! {membro} agora é nível **{nivel}**!",
+    "🥇 Medalha de evolução para {membro}, nível **{nivel}**!",
+    "📢 Atenção, tropa! {membro} subiu para o nível **{nivel}**!",
+    "🧭 A jornada continua! {membro} alcançou o nível **{nivel}**!",
+    "🌋 Uma explosão de XP levou {membro} ao nível **{nivel}**!",
+    "🦾 Modo evolução ativado! {membro} chegou ao nível **{nivel}**!",
+    "🪄 *Plim!* {membro} ganhou mais um nível: **{nivel}**!",
+    "🏁 Mais uma etapa vencida por {membro}: nível **{nivel}**!",
+    "🚁 Sobrevoando os níveis! {membro} chegou ao nível **{nivel}**!",
+    "🌊 Nem uma onda de desafios parou {membro}, agora nível **{nivel}**!",
+    "🕵️ Caso resolvido: {membro} alcançou o nível **{nivel}**!",
+    "🎭 Plot twist: {membro} ficou ainda mais forte e chegou ao nível **{nivel}**!",
+    "🔮 O destino revelou o próximo nível de {membro}: **{nivel}**!",
+    "🧨 XP EXPLOSIVO! {membro} acaba de atingir o nível **{nivel}**!",
+    "🦅 Voando alto! {membro} conquistou o nível **{nivel}**!",
+    "🌠 Uma estrela acaba de subir de nível: {membro}, nível **{nivel}**!",
+    "🏅 Respeita a evolução! {membro} agora está no nível **{nivel}**!",
+]
+
+
+
+# ===== GERADOR DE PRINT ESTILO DISCORD =====
+
+async def gerar_print_momento(mensagens):
+    largura = 1000
+    margem = 32
+    altura_cabecalho = 105
+    altura_mensagem = 100
+
+    fonte_titulo = ImageFont.load_default()
+    fonte_nome = ImageFont.load_default()
+    fonte_texto = ImageFont.load_default()
+
+    try:
+        fonte_titulo = ImageFont.truetype("arial.ttf", 27)
+        fonte_nome = ImageFont.truetype("arial.ttf", 20)
+        fonte_texto = ImageFont.truetype("arial.ttf", 18)
+    except OSError:
+        pass
+
+    mensagens_validas = [
+        msg for msg in mensagens
+        if msg.content.strip() or msg.attachments
+    ]
+
+    if not mensagens_validas:
+        return None
+
+    # Calcula a altura necessária para todas as mensagens
+    altura = altura_cabecalho
+
+    for msg in mensagens_validas:
+        linhas = max(1, len(textwrap.wrap(msg.content or "📎 Anexo", width=78)))
+        altura += max(altura_mensagem, 55 + linhas * 23)
+
+    altura = min(altura + 30, 2400)
+
+    imagem = Image.new(
+        "RGB",
+        (largura, altura),
+        (49, 51, 56)
+    )
+    desenho = ImageDraw.Draw(imagem)
+
+    # Cabeçalho
+    desenho.rectangle(
+        (0, 0, largura, altura_cabecalho),
+        fill=(35, 36, 40)
+    )
+
+    desenho.text(
+        (margem, 22),
+        "SYNNVCTAX",
+        font=fonte_titulo,
+        fill=(190, 140, 255)
+    )
+
+    desenho.text(
+        (margem, 62),
+        "📸 MELHORES MOMENTOS",
+        font=fonte_nome,
+        fill=(230, 230, 235)
+    )
+
+    y = altura_cabecalho + 18
+
+    for msg in mensagens_validas:
+        if y > altura - 75:
+            break
+
+        nome = msg.author.display_name[:40]
+        texto = msg.content.strip() or "📎 Enviou um anexo"
+
+        # Fundo do bloco da mensagem
+        desenho.rounded_rectangle(
+            (margem, y, largura - margem, y + 82),
+            radius=12,
+            fill=(43, 45, 49)
+        )
+
+        # Avatar do participante
+        try:
+            dados_avatar = await msg.author.display_avatar.read()
+            avatar = Image.open(BytesIO(dados_avatar)).convert("RGBA")
+            avatar = ImageOps.fit(avatar, (48, 48))
+
+            mascara = Image.new("L", (48, 48), 0)
+            ImageDraw.Draw(mascara).ellipse(
+                (0, 0, 48, 48),
+                fill=255
+            )
+
+            imagem.paste(
+                avatar,
+                (margem + 12, y + 12),
+                mascara
+            )
+        except Exception:
+            # Se o avatar não puder ser carregado, continua sem ele
+            desenho.ellipse(
+                (margem + 12, y + 12, margem + 60, y + 60),
+                fill=(120, 90, 170)
+            )
+
+        # Nome e horário
+        x_texto = margem + 75
+        cor_nome = (
+            (190, 140, 255)
+            if msg.author.bot
+            else (120, 190, 255)
+        )
+
+        desenho.text(
+            (x_texto, y + 8),
+            nome,
+            font=fonte_nome,
+            fill=cor_nome
+        )
+
+        horario = msg.created_at.strftime("%H:%M")
+        desenho.text(
+            (x_texto + 250, y + 11),
+            horario,
+            font=fonte_texto,
+            fill=(160, 165, 175)
+        )
+
+        # Mensagem
+        partes = textwrap.wrap(texto, width=76) or [texto]
+
+        for indice, parte in enumerate(partes[:2]):
+            desenho.text(
+                (x_texto, y + 38 + indice * 22),
+                parte,
+                font=fonte_texto,
+                fill=(240, 240, 240)
+            )
+
+        y += altura_mensagem
+
+    # Salva a imagem em memória para enviar ao Discord
+    arquivo = BytesIO()
+    imagem.crop((0, 0, largura, min(y + 15, altura))).save(
+        arquivo,
+        format="PNG"
+    )
+    arquivo.seek(0)
+
+    return discord.File(
+        arquivo,
+        filename="melhor_momento.png"
+    )
+
+# ===== ESPERA A CONVERSA CONTINUAR ANTES DO PRINT =====
+
+async def finalizar_captura_momento(canal_origem, canal_id, mensagem_gatilho_id):
+    try:
+        # Espera até 10 mensagens novas ou no máximo 60 segundos
+        for _ in range(60):
+            await asyncio.sleep(1)
+
+            mensagens = list(historico_momentos.get(canal_id, []))
+            novas = [
+                msg for msg in mensagens
+                if msg.id > mensagem_gatilho_id
+                and not msg.author.bot
+            ]
+
+            if len(novas) >= 10:
+                break
+
+        mensagens = list(historico_momentos.get(canal_id, []))
+        canal_momentos = bot.get_channel(CANAL_MOMENTOS_ID)
+
+        if canal_momentos is None:
+            print("❌ Canal de melhores momentos não encontrado.")
+            return
+
+        arquivo = await gerar_print_momento(mensagens)
+
+
+        if arquivo is not None:
+            embed = discord.Embed(
+                title="😂・MELHORES MOMENTOS",
+                description=(
+                    "Uma possível pérola foi encontrada!\n\n"
+                    f"📍 **Canal de origem:** {canal_origem.mention}\n"
+                    "📸 A conversa foi registrada automaticamente."
+                ),
+                color=discord.Color.from_rgb(0, 0, 0)
+            )
+
+            embed.set_image(url="attachment://melhor_momento.png")
+            embed.set_footer(text="SYNNVCTAX • Melhores Momentos")
+
+            await canal_momentos.send(
+                embed=embed,
+                file=arquivo
+            )
+
+
+    except (discord.HTTPException, OSError) as erro:
+        print(f"❌ Erro ao gerar momento: {erro}")
+
+
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
+
+
+    # ===== DETECÇÃO DE POSSÍVEIS MELHORES MOMENTOS =====
+    if message.guild is not None and message.content.strip():
+        canal_id = message.channel.id
+        agora = time.time()
+
+        if canal_id not in historico_momentos:
+            historico_momentos[canal_id] = deque(maxlen=12)
+
+        historico_momentos[canal_id].append(message)
+
+        texto = message.content.casefold()
+        parece_engracado = any(
+            palavra.casefold() in texto
+            for palavra in PALAVRAS_ENGRACADAS
+        )
+
+        ultimo = ultimo_momento_por_canal.get(canal_id, 0)
+
+        if parece_engracado and agora - ultimo >= 300:
+            ultimo_momento_por_canal[canal_id] = agora
+
+            asyncio.create_task(
+                finalizar_captura_momento(
+                    message.channel,
+                    canal_id,
+                    message.id
+                )
+            )
+
 
     # ===== SISTEMA DE XP =====
     if message.guild is not None:
@@ -1191,12 +1524,15 @@ async def on_message(message):
                 canal_xp = bot.get_channel(CANAL_XP_ID)
 
                 if canal_xp is not None:
-                    await canal_xp.send(
-                        f"🎉 Parabéns, {message.author.mention}! "
-                        f"Você chegou ao nível **{novo_nivel}**!"
+                    mensagem = random.choice(MENSAGENS_LEVEL_UP).format(
+                        membro=message.author.mention,
+                        nivel=novo_nivel
                     )
+                    await canal_xp.send(mensagem)
                 else:
                     print("❌ Canal de XP não encontrado. Confira o ID.")
+
+
 
     # ===== FORMULÁRIO DE ALISTAMENTO =====
     if (
@@ -1807,42 +2143,35 @@ class CargosView(discord.ui.View):
 )
 @app_commands.default_permissions(administrator=True)
 async def cargos(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
-            "❌ Somente administradores podem usar o comando /cargos.",
-            ephemeral=True
-        )
-        return
+
+    # O restante do seu código de permissões fica aqui
 
     embed = discord.Embed(
-        title="*__ESCOLHA SEUS CARGOS__*",
+        title="🎮 ESCOLHA SEUS CARGOS",
         description=(
-            "*Bem-vindo à Gaming Community!*\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "*Bem-vindo à Synnvctax Community!*\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "**🎨 Gartic** — Desenho e diversão.\n"
 
-            "***🎮 PERSONALIZE SUA EXPERIÊNCIA***\n"
-            "*Escolha abaixo os jogos que você curte e encontre pessoas para jogar com você.*\n\n"
-            "***🎨 Gartic***\n"
-            "*Para quem gosta de desenho, criatividade e diversão.*\n\n"
-            "***🔥 Free Fire***\n"
-            "*Para quem curte ação e partidas competitivas.*\n\n"
-            "***⛏️ Minecraft***\n"
-            "*Para quem gosta de construir, explorar e sobreviver.*\n\n"
-            "***🕹️ Outros Jogos***\n"
-            "*Para jogadores de outros títulos e estilos.*\n\n"
-            "***💣 Samp***\n"
-            "*Para quem curte San Andreas Multiplayer.*\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
-            "***👇 COMO ESCOLHER***\n"
-            "*• Abra o menu abaixo desta mensagem.*\n"
-            "*• Selecione um ou mais jogos.*\n"
-            "*• Clique em **✅ __Confirmar cargos__** para salvar.*\n\n"
-            "*✨ Você pode escolher mais de um jogo!*"
+            "**🔥 Free Fire** — Ação e competição.\n"
+
+            "**⛏️ Minecraft** — Construção e exploração.\n"
+
+            "**🕹️ Outros Jogos** — Outros estilos de jogos.\n"
+
+            "**💣 Samp** — San Andreas Multiplayer.\n"
+
+            "━━━━━━━━━━━━━━━━━━\n"
+            "**👇 COMO ESCOLHER**\n"
+            "• Selecione um ou mais jogos no menu abaixo.\n"
+            "• Clique em **✅ Confirmar cargos** para salvar.\n"
+            "*✨ Você pode escolher vários jogos!*"
         ),
         color=discord.Color.from_rgb(0, 0, 0)
     )
 
-    embed.set_footer(text="Gaming Community")
+    embed.set_footer(text="Synnvctax Community")
+    embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1562426046836645912/1564862702864572496/Logotipo_gamer_neon_synnvctaX.png?ex=6ae2cf76&is=6ae17df6&hm=e1899b77883ab66df72c99d90c1d965d804b62aaa5491e0930866194ad020ad3&")
 
     await interaction.response.send_message(
         embed=embed,
@@ -2231,11 +2560,13 @@ async def sortear_grupos(
 
     await interaction.response.send_message(embed=embed)
 
+
 @bot.tree.command(
     name="classificacao",
     description="Ver a classificação dos grupos",
     guild=discord.Object(id=1562425457905770518)
 )
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     nome="Nome exato do campeonato"
 )
@@ -2243,6 +2574,7 @@ async def classificacao(
     interaction: discord.Interaction,
     nome: str
 ):
+
     classificacao = classificacao_campeonato.get(nome)
     campeonato = campeonatos_ativos.get(nome)
 
