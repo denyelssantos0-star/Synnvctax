@@ -13,6 +13,12 @@ import aiohttp
 from collections import defaultdict, deque
 import asyncio
 import textwrap
+print("VERSÃO DISCORD.PY:", discord.__version__)
+
+# ===== SOLICITAÇÃO TAG STREAMER =====
+CANAL_SOLICITAR_ID = 1565013618544742531
+CARGO_STREAMER_ID = 1565014270201171998
+
 
 # ===== MELHORES MOMENTOS =====
 CANAL_MOMENTOS_ID = 1564636074310111302
@@ -82,6 +88,7 @@ CLASSIFICADOS_POR_GRUPO = 2
 @bot.event
 async def on_ready():
     try:
+        bot.add_view(CargosView())
 
         guild = discord.Object(id=1562425457905770518)
 
@@ -149,6 +156,31 @@ async def on_ready():
                     for m in mensagens_recentes
                 ):
                     await enviar_formulario_alistamento(canal_alistamento)
+
+
+        # ===== MODELO INICIAL TAG STREAMER =====
+        canal_solicitar = bot.get_channel(CANAL_SOLICITAR_ID)
+
+        if canal_solicitar is not None:
+            mensagens_recentes = [
+                mensagem async for mensagem in canal_solicitar.history(limit=30)
+                if mensagem.author == bot.user
+            ]
+
+            modelo_existe = any(
+                "Modelo Tag" in mensagem.content
+                and str(CARGO_STREAMER_ID) in mensagem.content
+                for mensagem in mensagens_recentes
+            )
+
+            if not modelo_existe:
+                await canal_solicitar.send(
+                    content=criar_modelo_streamer(),
+                    allowed_mentions=discord.AllowedMentions(roles=True)
+                )
+                print("✅ Modelo de solicitação Streamer publicado.")
+        else:
+            print("❌ Canal de solicitação não encontrado.")
 
     except Exception as erro:
         print(f"❌ Erro ao sincronizar ou iniciar: {erro}")
@@ -1431,12 +1463,30 @@ async def finalizar_captura_momento(canal_origem, canal_id, mensagem_gatilho_id)
 
 
 
+
+def criar_modelo_streamer():
+    return (
+        "**__Synnvctax Message:__**\n\n"
+        "📋 **__Modelo Tag <@&1565014270201171998>__**\n\n"
+        "🎮  Nome do Canal:\n"
+        "👥  Quantidade de Subscribers:\n"
+        "🔗  Link / Print do Canal:"
+    )
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
+    # ===== SOLICITAÇÃO TAG STREAMER =====
+    if message.channel.id == CANAL_SOLICITAR_ID:
+        if message.content.strip() or message.attachments:
+            await message.channel.send(
+                content=criar_modelo_streamer(),
+                allowed_mentions=discord.AllowedMentions(roles=True)
+            )
 
+    # ===== RESTANTE DO SEU CÓDIGO =====
     # ===== DETECÇÃO DE POSSÍVEIS MELHORES MOMENTOS =====
     if message.guild is not None and message.content.strip():
         canal_id = message.channel.id
@@ -1995,6 +2045,8 @@ async def top(interaction: discord.Interaction):
     
 # ===== MENU DE CARGOS ORIGINAIS =====
 
+cargos_escolhidos = {}
+
 
 class CargosSelect(discord.ui.Select):
     def __init__(self):
@@ -2010,12 +2062,15 @@ class CargosSelect(discord.ui.Select):
             placeholder="🎮 Escolha seus cargos!",
             min_values=1,
             max_values=5,
-            options=opcoes
+            options=opcoes,
+            custom_id="cargos:selecionar"
         )
 
     async def callback(self, interaction: discord.Interaction):
-        # Apenas registra a seleção; ainda não entrega os cargos.
-        await interaction.response.defer(ephemeral=True, thinking=True)
+        await interaction.response.defer(
+            ephemeral=True,
+            thinking=True
+        )
 
         guild = interaction.guild
 
@@ -2025,7 +2080,9 @@ class CargosSelect(discord.ui.Select):
                 ephemeral=True
             )
             return
-        self.view.escolhidos[interaction.user.id] = list(self.values)
+
+        chave = (interaction.message.id, interaction.user.id)
+        cargos_escolhidos[chave] = list(self.values)
 
         await interaction.followup.send(
             "🎮 Seleção salva! Clique em **✅ Confirmar cargos** "
@@ -2039,30 +2096,42 @@ class ConfirmarCargosButton(discord.ui.Button):
         super().__init__(
             label="Confirmar cargos",
             emoji="✅",
-            style=discord.ButtonStyle.success
+            style=discord.ButtonStyle.success,
+            custom_id="cargos:confirmar"
         )
 
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(
+            ephemeral=True,
+            thinking=True
+        )
+
         guild = interaction.guild
 
         if guild is None:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Este botão só funciona dentro do servidor.",
                 ephemeral=True
             )
             return
 
-        view = self.view
-        selecionados = view.escolhidos.get(interaction.user.id)
+        chave = (interaction.message.id, interaction.user.id)
+        selecionados = cargos_escolhidos.get(chave)
 
         if not selecionados:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "⚠️ Primeiro selecione pelo menos um jogo no menu.",
                 ephemeral=True
             )
             return
 
-        nomes = ["Gartic", "Free Fire", "Minecraft", "Outros Jogos", "Samp"]
+        nomes = [
+            "Gartic",
+            "Free Fire",
+            "Minecraft",
+            "Outros Jogos",
+            "Samp"
+        ]
 
         cargos = {
             nome: discord.utils.get(guild.roles, name=nome)
@@ -2070,7 +2139,7 @@ class ConfirmarCargosButton(discord.ui.Button):
         }
 
         if any(cargo is None for cargo in cargos.values()):
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Confira se os cinco cargos existem e se os nomes "
                 "estão exatamente iguais aos do código.",
                 ephemeral=True
@@ -2104,7 +2173,7 @@ class ConfirmarCargosButton(discord.ui.Button):
                 )
 
         except discord.Forbidden:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Não consigo gerenciar esses cargos. Verifique se "
                 "tenho a permissão **Gerenciar cargos** e se meu cargo "
                 "está acima dos cargos de jogos.",
@@ -2113,7 +2182,121 @@ class ConfirmarCargosButton(discord.ui.Button):
             return
 
         except discord.HTTPException:
-            await interaction.response.send_message(
+            await interaction.followup.send(
+                "❌ O Discord não conseguiu atualizar os cargos. "
+                "Tente novamente.",
+                ephemeral=True
+            )
+            return
+
+        cargos_escolhidos.pop(chave, None)
+
+        await interaction.followup.send(
+            "💜 Seus cargos foram atualizados com sucesso!",
+            ephemeral=True
+        )
+
+
+class CargosView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(CargosSelect())
+        self.add_item(ConfirmarCargosButton())
+
+
+
+class ConfirmarCargosButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Confirmar cargos",
+            emoji="✅",
+            style=discord.ButtonStyle.success,
+            custom_id="cargos:confirmar"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(
+            ephemeral=True,
+            thinking=True
+        )
+
+        guild = interaction.guild
+
+        if guild is None:
+            await interaction.followup.send(
+                "Este botão só funciona dentro do servidor.",
+                ephemeral=True
+            )
+            return
+
+        view = self.view
+        selecionados = view.escolhidos.get(interaction.user.id)
+
+        if not selecionados:
+            await interaction.followup.send(
+                "⚠️ Primeiro selecione pelo menos um jogo no menu.",
+                ephemeral=True
+            )
+            return
+
+        nomes = [
+            "Gartic",
+            "Free Fire",
+            "Minecraft",
+            "Outros Jogos",
+            "Samp"
+        ]
+
+        cargos = {
+            nome: discord.utils.get(guild.roles, name=nome)
+            for nome in nomes
+        }
+
+        if any(cargo is None for cargo in cargos.values()):
+            await interaction.followup.send(
+                "❌ Confira se os cinco cargos existem e se os nomes "
+                "estão exatamente iguais aos do código.",
+                ephemeral=True
+            )
+            return
+
+        membro = interaction.user
+        escolhidos = [cargos[nome] for nome in selecionados]
+
+        remover = [
+            cargo for cargo in cargos.values()
+            if cargo in membro.roles and cargo not in escolhidos
+        ]
+
+        adicionar = [
+            cargo for cargo in escolhidos
+            if cargo not in membro.roles
+        ]
+
+        try:
+            if remover:
+                await membro.remove_roles(
+                    *remover,
+                    reason="Atualização dos cargos pelo menu"
+                )
+
+            if adicionar:
+                await membro.add_roles(
+                    *adicionar,
+                    reason="Cargos escolhidos no menu"
+                )
+
+        except discord.Forbidden:
+            await interaction.followup.send(
+                "❌ Não consigo gerenciar esses cargos. Verifique se "
+                "tenho a permissão **Gerenciar cargos** e se meu cargo "
+                "está acima dos cargos de jogos.",
+                ephemeral=True
+            )
+            return
+
+        except discord.HTTPException:
+            await interaction.followup.send(
                 "❌ O Discord não conseguiu atualizar os cargos. "
                 "Tente novamente.",
                 ephemeral=True
@@ -2122,15 +2305,16 @@ class ConfirmarCargosButton(discord.ui.Button):
 
         view.escolhidos.pop(interaction.user.id, None)
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "💜 Seus cargos foram atualizados com sucesso!",
             ephemeral=True
         )
 
 
+
 class CargosView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=300)
+        super().__init__(timeout=None)
         self.escolhidos = {}
         self.add_item(CargosSelect())
         self.add_item(ConfirmarCargosButton())
