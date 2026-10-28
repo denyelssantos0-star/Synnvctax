@@ -37,6 +37,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 ID_SERVIDOR = 1562425457905770518
 CANAL_AGENDA_ID = 1564639801452527697
+CANAL_XP_ID = 1564877652760858696
 NOME_CANAL_ALISTAMENTO = "alistamento"
 CARGOS_ALISTAMENTO = [1555754432925405194, 1557070129085550672]
 MODELO_ALISTAMENTO = "<@&1555754432925405194> <@&1557070129085550672>\n\nNome:\nID:\nPlataforma:\nPrint info:"
@@ -1187,10 +1188,15 @@ async def on_message(message):
                         print(f"❌ Erro ao entregar cargo: {erro}")
 
 
-                await message.channel.send(
-                    f"🎉 Parabéns, {message.author.mention}! "
-                    f"Você chegou ao nível **{novo_nivel}**!"
-                )
+                canal_xp = bot.get_channel(CANAL_XP_ID)
+
+                if canal_xp is not None:
+                    await canal_xp.send(
+                        f"🎉 Parabéns, {message.author.mention}! "
+                        f"Você chegou ao nível **{novo_nivel}**!"
+                    )
+                else:
+                    print("❌ Canal de XP não encontrado. Confira o ID.")
 
     # ===== FORMULÁRIO DE ALISTAMENTO =====
     if (
@@ -1673,9 +1679,19 @@ class CargosSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         # Apenas registra a seleção; ainda não entrega os cargos.
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        guild = interaction.guild
+
+        if guild is None:
+            await interaction.followup.send(
+                "Este botão só funciona dentro do servidor.",
+                ephemeral=True
+            )
+            return
         self.view.escolhidos[interaction.user.id] = list(self.values)
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "🎮 Seleção salva! Clique em **✅ Confirmar cargos** "
             "para receber seus cargos.",
             ephemeral=True
@@ -1786,14 +1802,26 @@ class CargosView(discord.ui.View):
 
 @bot.tree.command(
     name="cargos",
-    description="Escolha seus cargos."
+    description="Escolha seus cargos.",
+    guild=discord.Object(id=1562425457905770518)
 )
+@app_commands.default_permissions(administrator=True)
 async def cargos(interaction: discord.Interaction):
+
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message(
+            "❌ Somente administradores podem usar o comando /cargos.",
+            ephemeral=True
+        )
+        return
+
+    # Mantenha aqui o restante original do comando
     embed = discord.Embed(
         title="*__ESCOLHA SEUS CARGOS__*",
         description=(
             "*Bem-vindo à Gaming Community!*\n"
             "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+
             "***🎮 PERSONALIZE SUA EXPERIÊNCIA***\n"
             "*Escolha abaixo os jogos que você curte e encontre pessoas para jogar com você.*\n\n"
             "***🎨 Gartic***\n"
@@ -1858,23 +1886,29 @@ class ParticiparEvento(discord.ui.View):
 
 
 @bot.tree.command(
-    
     name="evento",
     description="Publica um evento na agenda do servidor",
     guild=discord.Object(id=1562425457905770518)
 )
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     nome="Nome do evento",
     data="Data e horário do evento",
     descricao="Descrição do evento"
 )
-
 async def evento(
     interaction: discord.Interaction,
     nome: str,
     data: str,
     descricao: str
 ):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para criar eventos!",
+            ephemeral=True
+        )
+        return
+
     await interaction.response.defer(ephemeral=True)
 
     canal = interaction.guild.get_channel(CANAL_AGENDA_ID)
