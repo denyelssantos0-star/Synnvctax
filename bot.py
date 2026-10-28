@@ -1807,7 +1807,6 @@ class CargosView(discord.ui.View):
 )
 @app_commands.default_permissions(administrator=True)
 async def cargos(interaction: discord.Interaction):
-
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
             "❌ Somente administradores podem usar o comando /cargos.",
@@ -1815,7 +1814,6 @@ async def cargos(interaction: discord.Interaction):
         )
         return
 
-    # Mantenha aqui o restante original do comando
     embed = discord.Embed(
         title="*__ESCOLHA SEUS CARGOS__*",
         description=(
