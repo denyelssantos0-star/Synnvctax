@@ -331,40 +331,40 @@ async def on_member_join(member):
     if not hasattr(canal, "send"):
         print("❌ O ID configurado para boas-vindas não é um canal que aceita mensagens.")
         return
+
     mensagens_boas_vindas = [
-    f"🖤 {member.mention} acabou de chegar na **Community Originais**. Seja bem-vindo(a)!",
-    f"👑 Abram espaço! {member.mention} chegou nos **Originais**.",
-    f"🔥 Mais um Original na área! Salve, {member.mention}!",
-    f"🥷 {member.mention} apareceu por aqui... seja bem-vindo(a) aos **Originais**.",
-    f"⚡ Reforço chegando! Bem-vindo(a), {member.mention}!",
-    f"🎉 Recebam {member.mention}! A família **Originais** está crescendo.",
-    f"🫡 Salve, {member.mention}! Seja bem-vindo(a) à **Community Originais**.",
-    f"💀 Atenção: {member.mention} acaba de entrar no território dos **Originais**.",
-    f"🚀 {member.mention} entrou no servidor. Aproveite a comunidade!",
-    f"🖤 A família cresceu! Bem-vindo(a), {member.mention}.",
+        f"Seja bem-vindo(a), {member.mention}! Sua história na Synnvctax Community começa agora.",
+        f"A comunidade ganha mais alguém. Bem-vindo(a), {member.mention}!",
+        f"{member.mention}, esperamos que encontre boas amizades e bons momentos por aqui.",
+        f"👑 Mais um integrante na Synnvctax Community. Seja bem-vindo(a), {member.mention}!",
+        f"Chegou agora? Fique à vontade, conheça os canais e participe da comunidade.",
+        f"{member.mention} acaba de chegar. Que essa seja uma ótima experiência!",
+        f"Bem-vindo(a) à Synnvctax Community, {member.mention}. Aqui começa uma nova conexão.",
+        f"🚀 Novo membro na área: {member.mention}!",
+        f"Não fique só observando, {member.mention}. Chega junto e participa!",
+        f"É bom ter você aqui, {member.mention}. Aproveite a comunidade!",
+        f"{member.mention}, mais uma pessoa para fazer parte dos nossos momentos.",
+        f"✨ A Synnvctax Community recebe você de portas abertas, {member.mention}.",
+        f"Chegou ao lugar certo, {member.mention}. Explore o servidor e fique à vontade.",
+        f"Novo capítulo desbloqueado para {member.mention}. Boa jornada!",
+        f"Seja bem-vindo(a), {member.mention}. Esperamos ver você participando por aqui.",
+        f"🎮 Mais um player conectado: {member.mention}.",
+        f"{member.mention} chegou para somar. Que venham boas conversas!",
+        f"Uma comunidade é feita pelas pessoas. Seja bem-vindo(a), {member.mention}.",
+        f"Salve, {member.mention}! Dá uma olhada nos canais e aproveita.",
+        f"A Synnvctax Community ficou maior hoje. Bem-vindo(a), {member.mention}!",
+        f"{member.mention}, sinta-se em casa. Só não esquece de conferir as regras.",
+        f"🤝 Recebam {member.mention}! Que venham boas amizades.",
+        f"Tem gente nova por aqui: {member.mention}. Vamos dar as boas-vindas!",
+        f"Seu próximo lugar favorito pode ser aqui, {member.mention}. Seja bem-vindo(a)!",
+        f"{member.mention}, chegou a hora de conhecer a galera da comunidade.",
+        f"Uma nova presença, novas conversas e novas histórias. Bem-vindo(a), {member.mention}!",
+        f"Bem-vindo(a), {member.mention}. Faça sua presença valer a pena!",
+        f"💜 Que sua passagem pela Synnvctax Community seja cheia de bons momentos, {member.mention}.",
+        f"Mais um chegou! {member.mention}, pode entrar e ficar à vontade.",
+        f"Boas-vindas, {member.mention}. A comunidade também é sua agora!"
+    ]
 
-    f"🏙️ Novo player na cidade: {member.mention}! Seja bem-vindo(a).",
-    f"🚘 {member.mention} acabou de spawnar na **Community Originais**!",
-    f"🎮 Player conectado: {member.mention}. Bem-vindo(a) aos **Originais**!",
-    f"📡 Conexão estabelecida! {member.mention} entrou no servidor.",
-    f"🏁 Chegou mais um! Seja bem-vindo(a), {member.mention}.",
-    f"🔑 {member.mention} recebeu acesso à **Community Originais**. Bem-vindo(a)!",
-    f"🌃 Mais um pela cidade! Salve, {member.mention}!",
-    f"🚨 Novo membro detectado: {member.mention}. Recebam nosso novo Original!",
-    f"💨 Do nada apareceu {member.mention} 😂 Seja bem-vindo(a)!",
-    f"🎯 {member.mention} encontrou o servidor certo. Bem-vindo(a)!",
-
-    f"👀 Olha quem chegou... {member.mention}!",
-    f"😂 Alguém abriu o portão e {member.mention} entrou. Bem-vindo(a)!",
-    f"🍷 Chegou com estilo! Bem-vindo(a), {member.mention}.",
-    f"🤝 Recebam bem {member.mention}! Agora ele(a) faz parte da comunidade.",
-    f"🛬 Pousou nos **Originais**! Bem-vindo(a), {member.mention}!",
-    f"✨ Temos companhia nova! Salve, {member.mention}!",
-    f"🔔 Ding dong! {member.mention} chegou na **Community Originais**.",
-    f"🕶️ Novo Original identificado: {member.mention}. Seja bem-vindo(a)!",
-    f"🏆 Seja bem-vindo(a), {member.mention}! Você é o membro **#{member.guild.member_count}**.",
-    f"🖤 Bem-vindo(a) à família, {member.mention}. **Uma vez Original, sempre Original.**"
-]
     mensagem = random.choice(mensagens_boas_vindas)
     try:
         await canal.send(mensagem)
@@ -2045,6 +2045,7 @@ async def top(interaction: discord.Interaction):
     
 # ===== MENU DE CARGOS ORIGINAIS =====
 
+
 cargos_escolhidos = {}
 
 
@@ -2072,11 +2073,9 @@ class CargosSelect(discord.ui.Select):
             thinking=True
         )
 
-        guild = interaction.guild
-
-        if guild is None:
+        if interaction.guild is None or interaction.message is None:
             await interaction.followup.send(
-                "Este botão só funciona dentro do servidor.",
+                "❌ Não foi possível identificar o menu.",
                 ephemeral=True
             )
             return
@@ -2085,8 +2084,7 @@ class CargosSelect(discord.ui.Select):
         cargos_escolhidos[chave] = list(self.values)
 
         await interaction.followup.send(
-            "🎮 Seleção salva! Clique em **✅ Confirmar cargos** "
-            "para receber seus cargos.",
+            "🎮 Seleção salva! Agora clique em **✅ Confirmar cargos**.",
             ephemeral=True
         )
 
@@ -2108,9 +2106,9 @@ class ConfirmarCargosButton(discord.ui.Button):
 
         guild = interaction.guild
 
-        if guild is None:
+        if guild is None or interaction.message is None:
             await interaction.followup.send(
-                "Este botão só funciona dentro do servidor.",
+                "❌ Não foi possível identificar o servidor ou menu.",
                 ephemeral=True
             )
             return
@@ -2120,7 +2118,7 @@ class ConfirmarCargosButton(discord.ui.Button):
 
         if not selecionados:
             await interaction.followup.send(
-                "⚠️ Primeiro selecione pelo menos um jogo no menu.",
+                "⚠️ A seleção não foi encontrada. Selecione os jogos novamente.",
                 ephemeral=True
             )
             return
@@ -2174,17 +2172,15 @@ class ConfirmarCargosButton(discord.ui.Button):
 
         except discord.Forbidden:
             await interaction.followup.send(
-                "❌ Não consigo gerenciar esses cargos. Verifique se "
-                "tenho a permissão **Gerenciar cargos** e se meu cargo "
-                "está acima dos cargos de jogos.",
+                "❌ Não consigo gerenciar esses cargos. Verifique a "
+                "permissão Gerenciar cargos e a posição do meu cargo.",
                 ephemeral=True
             )
             return
 
         except discord.HTTPException:
             await interaction.followup.send(
-                "❌ O Discord não conseguiu atualizar os cargos. "
-                "Tente novamente.",
+                "❌ O Discord não conseguiu atualizar os cargos. Tente novamente.",
                 ephemeral=True
             )
             return
@@ -2192,7 +2188,7 @@ class ConfirmarCargosButton(discord.ui.Button):
         cargos_escolhidos.pop(chave, None)
 
         await interaction.followup.send(
-            "💜 Seus cargos foram atualizados com sucesso!",
+            "🔴 Seus cargos foram atualizados com sucesso!",
             ephemeral=True
         )
 
@@ -2203,121 +2199,6 @@ class CargosView(discord.ui.View):
         self.add_item(CargosSelect())
         self.add_item(ConfirmarCargosButton())
 
-
-
-class ConfirmarCargosButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(
-            label="Confirmar cargos",
-            emoji="✅",
-            style=discord.ButtonStyle.success,
-            custom_id="cargos:confirmar"
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(
-            ephemeral=True,
-            thinking=True
-        )
-
-        guild = interaction.guild
-
-        if guild is None:
-            await interaction.followup.send(
-                "Este botão só funciona dentro do servidor.",
-                ephemeral=True
-            )
-            return
-
-        view = self.view
-        selecionados = view.escolhidos.get(interaction.user.id)
-
-        if not selecionados:
-            await interaction.followup.send(
-                "⚠️ Primeiro selecione pelo menos um jogo no menu.",
-                ephemeral=True
-            )
-            return
-
-        nomes = [
-            "Gartic",
-            "Free Fire",
-            "Minecraft",
-            "Outros Jogos",
-            "Samp"
-        ]
-
-        cargos = {
-            nome: discord.utils.get(guild.roles, name=nome)
-            for nome in nomes
-        }
-
-        if any(cargo is None for cargo in cargos.values()):
-            await interaction.followup.send(
-                "❌ Confira se os cinco cargos existem e se os nomes "
-                "estão exatamente iguais aos do código.",
-                ephemeral=True
-            )
-            return
-
-        membro = interaction.user
-        escolhidos = [cargos[nome] for nome in selecionados]
-
-        remover = [
-            cargo for cargo in cargos.values()
-            if cargo in membro.roles and cargo not in escolhidos
-        ]
-
-        adicionar = [
-            cargo for cargo in escolhidos
-            if cargo not in membro.roles
-        ]
-
-        try:
-            if remover:
-                await membro.remove_roles(
-                    *remover,
-                    reason="Atualização dos cargos pelo menu"
-                )
-
-            if adicionar:
-                await membro.add_roles(
-                    *adicionar,
-                    reason="Cargos escolhidos no menu"
-                )
-
-        except discord.Forbidden:
-            await interaction.followup.send(
-                "❌ Não consigo gerenciar esses cargos. Verifique se "
-                "tenho a permissão **Gerenciar cargos** e se meu cargo "
-                "está acima dos cargos de jogos.",
-                ephemeral=True
-            )
-            return
-
-        except discord.HTTPException:
-            await interaction.followup.send(
-                "❌ O Discord não conseguiu atualizar os cargos. "
-                "Tente novamente.",
-                ephemeral=True
-            )
-            return
-
-        view.escolhidos.pop(interaction.user.id, None)
-
-        await interaction.followup.send(
-            "💜 Seus cargos foram atualizados com sucesso!",
-            ephemeral=True
-        )
-
-
-
-class CargosView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.escolhidos = {}
-        self.add_item(CargosSelect())
-        self.add_item(ConfirmarCargosButton())
 
 
 @bot.tree.command(
@@ -2362,10 +2243,11 @@ async def cargos(interaction: discord.Interaction):
         view=CargosView()
     )
 
+
 class ParticiparEvento(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.participantes = set()
+        self.participantes = {}
 
     @discord.ui.button(
         label="Participar (0)",
@@ -2379,17 +2261,49 @@ class ParticiparEvento(discord.ui.View):
         button: discord.ui.Button
     ):
         usuario_id = interaction.user.id
+        nome_usuario = interaction.user.display_name
 
         if usuario_id in self.participantes:
-            self.participantes.remove(usuario_id)
+            del self.participantes[usuario_id]
             mensagem = "Você saiu da lista de participantes."
         else:
-            self.participantes.add(usuario_id)
+            self.participantes[usuario_id] = nome_usuario
             mensagem = "Você confirmou presença no evento!"
 
         button.label = f"Participar ({len(self.participantes)})"
 
-        await interaction.response.edit_message(view=self)
+        embed = interaction.message.embeds[0]
+
+        # Atualiza a lista de participantes no evento
+        for campo in list(embed.fields):
+            if campo.name == "✅ PARTICIPANTES":
+                embed.remove_field(
+                    next(
+                        i for i, item in enumerate(embed.fields)
+                        if item.name == "✅ PARTICIPANTES"
+                    )
+                )
+                break
+
+        if self.participantes:
+            lista = "\n".join(
+                f"• <@{usuario_id}>"
+                for usuario_id in self.participantes.keys()
+            )
+        else:
+            lista = "Ninguém confirmou presença ainda."
+
+        embed.add_field(
+            name="✅ PARTICIPANTES",
+            value=lista[:1024],
+            inline=False
+        )
+
+        await interaction.response.edit_message(
+            embed=embed,
+            view=self
+        )
+
         await interaction.followup.send(
             mensagem,
             ephemeral=True
@@ -2461,20 +2375,18 @@ async def evento(
     url="https://i.ibb.co/ycGWk78y/Emblema-Neon-SYNNVCTAX.png"
 )
 
-    view = InscricaoCampeonato(nome)
+    view = ParticiparEvento()
 
     mensagem = await canal.send(
         embed=embed,
         view=view
     )
 
-    campeonatos_ativos[nome]["view"] = view
-    campeonatos_ativos[nome]["mensagem_id"] = mensagem.id
-
     await interaction.followup.send(
         f"✅ Evento **{nome}** publicado no canal {canal.mention}!",
         ephemeral=True
     )
+
 
 class FormularioEquipe(discord.ui.Modal, title="Inscrever equipe"):
     def __init__(self, nome_campeonato):
@@ -2573,18 +2485,67 @@ class FormularioEquipe(discord.ui.Modal, title="Inscrever equipe"):
                         f"Inscrever-se ({len(equipes)}/{campeonato['limite']})"
                     )
 
+
             try:
                 mensagem = await interaction.channel.fetch_message(
                     mensagem_id
                 )
-                await mensagem.edit(view=view)
+
+                if mensagem.embeds:
+                    embed = mensagem.embeds[0]
+
+                    lista_equipes = []
+
+                    for equipe in equipes:
+                        jogadores = "\n".join(
+                            f"• <@{jogador_id}>"
+                            for jogador_id in equipe["jogadores"]
+                        )
+
+                        lista_equipes.append(
+                            f"🛡️ **{equipe['nome']}**\n{jogadores}"
+                        )
+
+                    texto_equipes = "\n\n".join(lista_equipes)
+
+                    indice = next(
+                        (
+                            i for i, campo in enumerate(embed.fields)
+                            if campo.name == "✅ EQUIPES INSCRITAS"
+                        ),
+                        None
+                    )
+
+                    if indice is None:
+                        embed.add_field(
+                            name="✅ EQUIPES INSCRITAS",
+                            value=texto_equipes[:1024],
+                            inline=False
+                        )
+                    else:
+                        embed.set_field_at(
+                            indice,
+                            name="✅ EQUIPES INSCRITAS",
+                            value=texto_equipes[:1024],
+                            inline=False
+                        )
+
+                    await mensagem.edit(
+                        embed=embed,
+                        view=view
+                    )
+                else:
+                    await mensagem.edit(view=view)
+
                 print(f"Contador atualizado para {len(equipes)} equipes")
+
             except (discord.NotFound, discord.HTTPException) as erro:
                 print(f"Erro ao atualizar contador de equipes: {erro}")
         await interaction.response.send_message(
             f"✅ Equipe **{self.nome_equipe.value}** inscrita com sucesso!",
             ephemeral=True
         )
+
 
 
 class InscricaoCampeonato(discord.ui.View):
@@ -2614,6 +2575,7 @@ class InscricaoCampeonato(discord.ui.View):
 
         usuario_id = interaction.user.id
         participantes = campeonato["participantes"]
+
         if campeonato["tipo"] == "Equipes":
             await interaction.response.send_modal(
                 FormularioEquipe(self.nome_campeonato)
@@ -2635,15 +2597,52 @@ class InscricaoCampeonato(discord.ui.View):
             return
 
         participantes.append(usuario_id)
+
         button.label = (
             f"Inscrever-se ({len(participantes)}/{campeonato['limite']})"
         )
 
-        await interaction.response.edit_message(view=self)
+        embed = interaction.message.embeds[0]
+
+        lista = "\n".join(
+            f"• <@{id_usuario}>"
+            for id_usuario in participantes
+        )
+
+        indice = next(
+            (
+                i for i, campo in enumerate(embed.fields)
+                if campo.name == "✅ PARTICIPANTES"
+            ),
+            None
+        )
+
+        if indice is None:
+            embed.add_field(
+                name="✅ PARTICIPANTES",
+                value=lista,
+                inline=False
+            )
+        else:
+            embed.set_field_at(
+                indice,
+                name="✅ PARTICIPANTES",
+                value=lista,
+                inline=False
+            )
+
+        await interaction.response.edit_message(
+            embed=embed,
+            view=self,
+            allowed_mentions=discord.AllowedMentions.none()
+        )
+
         await interaction.followup.send(
             "✅ Você foi inscrito no campeonato!",
             ephemeral=True
         )
+
+
 
 @bot.tree.command(
     name="sortear_grupos",
@@ -2933,6 +2932,8 @@ async def campeonato(
 ):
     await interaction.response.defer(ephemeral=True)
 
+    print("DEBUG: entrei na criação do campeonato")
+
     campeonatos_ativos[nome] = {
         "nome": nome,
         "tipo": tipo.value,
@@ -2968,6 +2969,7 @@ async def campeonato(
 
     embed.set_footer(text="SYNNVCTAX • Campeonatos")
 
+
     view = InscricaoCampeonato(nome)
 
     mensagem = await canal.send(
@@ -2977,8 +2979,9 @@ async def campeonato(
 
     campeonatos_ativos[nome]["view"] = view
     campeonatos_ativos[nome]["mensagem_id"] = mensagem.id
+
     await interaction.followup.send(
-        f"✅ Campeonato **{nome}** publicado em {canal.mention}!",
+        f"✅ Campeonato **{nome}** publicado no canal {canal.mention}!",
         ephemeral=True
     )
 
